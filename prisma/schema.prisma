@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["lake"]
+}
+
+
+// Assets table
+model Asset {
+  id              Int         @id @default(autoincrement())
+  prismaId        String      @unique @map("prisma_id") @db.VarChar(255)
+  assetName       String?     @map("asset_name") @db.Text
+  equipmentType   String?     @map("equipment_type") @db.Text
+  businessUnit    String?     @map("business_unit") @db.Text
+  parentAsset     String?     @map("parent_asset") @db.VarChar(255)
+  companyLevel    Float?      @map("company_level")
+  priority        Float?
+  equipmentState  String?     @map("equipment_state") @db.VarChar(255)
+  isLinearAsset   Float?      @map("is_linear_asset")
+  recordState     String?     @map("record_state") @db.VarChar(255)
+  customIsTu      Float?      @map("custom_is_tu")
+  siteId          Int         @map("site_id") @db.SmallInt
+
+  // Relations
+  documents       Document[]
+  workOrders      WorkOrder[]
+
+  @@map("assets")
+  @@schema("lake")
+}
+
+// Documents table
+model Document {
+  id          String    @id @db.VarChar(255)
+  assetId     Int?      @map("asset_id")
+  fileName    String    @map("file_name") @db.VarChar(255)
+  md5         String    @unique @db.VarChar(32)
+  storagePath String    @map("storage_path") @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  asset       Asset?    @relation(fields: [assetId], references: [id])
+  values      Value[]
+
+  @@map("documents")
+  @@schema("lake")
+}
+
+// Metadata table
+model Metadata {
+  id           Int     @id @default(autoincrement())
+  metadataName String  @unique @map("metadata_name") @db.VarChar(255)
+
+  // Relations
+  values       Value[]
+
+  @@map("metadata")
+  @@schema("lake")
+}
+
+// Values table
+model Value {
+  id          Int      @id @default(autoincrement())
+  idMetadata  Int      @map("id_metadata")
+  idDocument  String   @map("id_document") @db.VarChar(255)
+  value       String?  @db.Text
+
+  // Relations
+  metadata    Metadata @relation(fields: [idMetadata], references: [id])
+  document    Document @relation(fields: [idDocument], references: [id])
+
+  @@map("values")
+  @@schema("lake")
+}
+
+// Work Orders table
+model WorkOrder {
+  assetId                   Int       @map("asset_id")
+  workOrder                 Float     @map("work_order")
+  workOrderName             String?   @map("work_order_name") @db.Text
+  workOrderSource           String?   @map("work_order_source") @db.VarChar(255)
+  workOrderDate             DateTime? @map("work_order_date") @db.Timestamp
+  workOrderState            String?   @map("work_order_state") @db.VarChar(255)
+  workType                  String?   @map("work_type") @db.VarChar(255)
+  workProcedure             String?   @map("work_procedure") @db.VarChar(255)
+  workShop                  String?   @map("work_shop") @db.VarChar(255)
+  equipmentType             String?   @map("equipment_type") @db.VarChar(255)
+  businessUnit              String?   @map("business_unit") @db.VarChar(255)
+  companyLevel              Float?    @map("company_level")
+  plannedDate               DateTime? @map("planned_date") @db.Timestamp
+  minPlannedDate            DateTime? @map("min_planned_date") @db.Timestamp
+  maxPlannedDate            DateTime? @map("max_planned_date") @db.Timestamp
+  plannedDownTime           Float?    @map("planned_down_time")
+  priority                  Float?
+  supplier                  String?   @db.VarChar(255)
+  closingDate               DateTime? @map("closing_date") @db.Timestamp
+  closed                    Boolean?
+  requester                 String?   @db.VarChar(255)
+  isParentWo                Boolean?  @map("is_parent_wo")
+  planningNumber            Float?    @map("planning_number")
+  isEquipmentPreventive     Boolean?  @map("is_equipment_preventive")
+  isSaleInvoiced            Boolean?  @map("is_sale_invoiced")
+  initialWorkedOutDate      DateTime? @map("initial_worked_out_date") @db.Timestamp
+  totalOwnLaborAmount       Float?    @map("total_own_labor_amount")
+  totalOwnLaborTime         Float?    @map("total_own_labor_time")
+  totalSuppliedLaborAmount  Float?    @map("total_supplied_labor_amount")
+  totalSuppliedLaborTime    Float?    @map("total_supplied_labor_time")
+  totalIssueAmount          Float?    @map("total_issue_amount")
+  totalExtMatAmount         Float?    @map("total_ext_mat_amount")
+  totalChargeAmount         Float?    @map("total_charge_amount")
+  totalToolAmount           Float?    @map("total_tool_amount")
+  totalToolTime             Float?    @map("total_tool_time")
+  totalDownTime             Float?    @map("total_down_time")
+  totalDownTimeAmount       Float?    @map("total_down_time_amount")
+  flowWoToClosing           Float?    @map("flow_wo_to_closing")
+  carriedOut                Boolean?  @map("carried_out")
+  customServiceAffection    Float?    @map("custom_service_affection")
+
+  // Relations
+  asset                     Asset     @relation(fields: [assetId], references: [id])
+
+  @@id([assetId, workOrder])
+  @@map("work_orders")
+  @@schema("lake")
+}

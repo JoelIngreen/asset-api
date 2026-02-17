@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+dist
+.env
+.env.local
+.git
+.gitignore
+README.md
+.vscode
+*.http
+storage/*
+!storage/.gitkeep
+prisma/migrations
+.env.docker

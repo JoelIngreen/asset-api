@@ -1,0 +1,76 @@
+# Variables used throughout the file
+@host = http://localhost:20000
+
+###
+# 1. Health Check
+# A simple GET request to confirm the API is running.
+GET {{host}}/health
+
+###
+# 2. Get All Items
+# Fetches the entire dictionary of items.
+GET {{host}}/api/v1/items
+
+###
+# 3. Create a New Item
+# Adds a new item to the in-memory dictionary.
+POST {{host}}/api/v1/items
+Content-Type: application/json
+
+{
+  "name": "Wireless Mouse",
+  "category": "electronics",
+  "price": 45.99
+}
+
+###
+# 4a. Get a Specific Item by ID (Successful)
+# Fetches item with ID 2, which exists in the dummy data.
+GET {{host}}/api/v1/items/2
+
+###
+# 4b. Get a Specific Item by ID (Not Found)
+# Tries to fetch item with ID 99, which should return a 404 error.
+GET {{host}}/api/v1/items/99
+
+###
+# 5. Search for Items by Category and Price
+# Searches for items in the 'electronics' category with a max price of 100.00.
+# This should return only the "Keyboard" item.
+GET {{host}}/api/v1/search/electronics/100.00
+
+###
+# 6. Another Search Example
+# Searches for items in the 'books' category with a max price of 50.00.
+# This should return the "Book" item.
+GET {{host}}/api/v1/search/books/50.00
+
+###
+# 7. Search with no results
+# Searches for items in a category that doesn't exist or with too low price
+GET {{host}}/api/v1/search/electronics/10.00
+
+###
+# 8. Create Item - Invalid Data (missing field)
+POST {{host}}/api/v1/items
+Content-Type: application/json
+
+{
+  "name": "Test Item",
+  "category": "test"
+}
+
+###
+# 9. Create Item - Invalid Data (negative price)
+POST {{host}}/api/v1/items
+Content-Type: application/json
+
+{
+  "name": "Invalid Item",
+  "category": "test",
+  "price": -10.50
+}
+
+###
+# 10. Get Item with Invalid ID
+GET {{host}}/api/v1/items/abc
