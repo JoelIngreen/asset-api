@@ -1,40 +1,88 @@
+# docker-compose.yml
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
-    container_name: api_postgres_asset
-    restart: unless-stopped
+    image: postgres:14-alpine
+    container_name: asset-management-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      SCHEMA_NAME: ${SCHEMA_NAME}
+      POSTGRES_USER: ${POSTGRES_USER:-asset_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asset_password}
+      POSTGRES_DB: ${POSTGRES_DB:-asset_db}
     ports:
-      - "5433:5432"   # host:container
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-    - postgres_data:/var/lib/postgresql/data
-    - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-asset_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - asset-network
 
-  app:
+  # API Application
+  api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: api_app_asset
-    restart: unless-stopped
+      args:
+        NODE_VERSION: "20"
+    container_name: asset-management-api
+    environment:
+      API_PORT: 20000
+      enable_database: 1
+      postgres_user: ${POSTGRES_USER:-asset_user}
+      postgres_password: ${POSTGRES_PASSWORD:-asset_password}
+      postgres_host: postgres
+      postgres_port: 5432
+      postgres_db: ${POSTGRES_DB:-asset_db}
+      schema_name: ${SCHEMA_NAME:-lake}
+      storage_path: /app/storage
+      NODE_ENV: production
     ports:
-      - "${API_PORT}:20000"
-    env_file:
-      - .env.docker
+      - "${API_PORT:-20000}:20000"
+    volumes:
+      - ./storage:/app/storage
+      - ./prisma:/app/prisma
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - asset-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        node dist/index.js
+      "
+
+  # pgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: asset-management-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
     volumes:
-      - ./storage:/app/storage
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - asset-network
+    profiles:
+      - tools
 
 volumes:
   postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  asset-network:
+    driver: bridge
